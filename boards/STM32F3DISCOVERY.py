@@ -56,11 +56,8 @@ devices = {
   'LED8' : { 'pin' : 'E13' },
   'BTN1' : { 'pin' : 'A0' },
 
-  'USB' : { 'pin_otg_pwr' : 'C0',#
-            'pin_dm' : 'A11',
-            'pin_dp' : 'A12',
-            'pin_vbus' : 'A9',#
-            'pin_id' : 'A10', },#
+  'USB' : { 'pin_dm' : 'A11',
+            'pin_dp' : 'A12' },
   'GYRO' : { 'device' : 'L3GD20',
              'pin_cs' : 'E3',
              'pin_sck' : 'A5',
@@ -76,18 +73,6 @@ devices = {
             'pin_int1' :  'E4',
             'pin_int2' :  'E5',
    },
-  'MIC' :  { 'device' : 'MP45DT02',
-             'pin_clk' :  'C3',
-             'pin_dout' :  'B10', },
-  'AUDIO' :  { 'device' : 'CS43L22',
-               'pin_sda' :  'B9',
-               'pin_scl' :  'B6',
-               'pin_mclk' :  'C7',
-               'pin_sclk' :  'C10',    
-               'pin_sdin' :  'C12',  
-               'pin_lrck' :  'A4',
-               'pin_nrst' :  'D4',    
-                },
   'JTAG' : {
         'pin_MS' : 'A13',
         'pin_CK' : 'A14', 
@@ -99,7 +84,7 @@ devices = {
 board = {
   'left' : [ '3V','GND','C1','C3','A1','A3','F4','A5','A7','C5','B1','E7','E9','E11','E13','E15','B11','B13','B15','D9','D11','D13','D15','C6','GND' ],
   'left2' : [ '3V','NRST','C0','C2','F2','A0','A2','A4','A6','C4','B0','B2','E8','E10','E12','E14','B10','B12','B14','D8','D10','D12','D14','C7','GND' ],
-  'right2' : [ '5V','F9','D0','C14','E6','E4','E2','E0','B8','BOOT0','B6','B4','D7','D5','D3','D1','C12','C10','A14','F6','A12','A10','A8','C8','GND' ],
+  'right2' : [ '5V','F9','F0','C14','E6','E4','E2','E0','B8','BOOT0','B6','B4','D7','D5','D3','D1','C12','C10','A14','F6','A12','A10','A8','C8','GND' ],
   'right' : [ '5V','F10','F1','C15','C13','E5','E3','E1','B9','VDD','B7','B5','B3','D6','D4','D2','D0','C11','A15','A13','A11','A9','C9','NC','GND' ],
 };
 board["_css"] = """
