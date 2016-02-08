@@ -1541,6 +1541,13 @@ static NO_INLINE int jshAnalogRead(JsvPinInfoAnalog analog, bool fastConversion)
       ADC_CommonStructInit(&ADC_CommonInitStructure);
       // use defaults
 #ifdef STM32F3
+      if (ADCx == ADC1 || ADCx == ADC2) {
+        RCC_ADCCLKConfig(RCC_ADC12PLLCLK_Div2);
+      } else { /* ADCx == ADC3 || ADCx == ADC4 */
+        RCC_ADCCLKConfig(RCC_ADC34PLLCLK_Div2);
+      }
+      ADC_VoltageRegulatorCmd(ADCx, ENABLE);
+      jshDelayMicroseconds(10);
       ADC_CommonInit(ADCx, &ADC_CommonInitStructure);
 #else
       ADC_CommonInit(&ADC_CommonInitStructure);
