@@ -998,8 +998,7 @@ void jshInit() {
  #if defined(STM32F3)
   RCC_APB1PeriphClockCmd(RCC_APB1Periph_PWR, ENABLE);
   RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
-  RCC_AHBPeriphClockCmd( RCC_AHBPeriph_ADC12 |
-                         RCC_AHBPeriph_GPIOA |
+  RCC_AHBPeriphClockCmd( RCC_AHBPeriph_GPIOA |
                          RCC_AHBPeriph_GPIOB |
                          RCC_AHBPeriph_GPIOC |
                          RCC_AHBPeriph_GPIOD |
