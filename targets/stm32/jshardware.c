@@ -263,6 +263,10 @@ static ALWAYS_INLINE uint8_t stmADCChannel(JsvPinInfoAnalog analog) {
   case JSH_ANALOG_CH15  : return ADC_Channel_15;
   case JSH_ANALOG_CH16  : return ADC_Channel_16;
   case JSH_ANALOG_CH17  : return ADC_Channel_17;
+#ifdef STM32F3XX
+  // !FIX! why STM32F3 sometimes, and STM32F3XX others?
+  case JSH_ANALOG_CH18  : return ADC_Channel_18;
+#endif
   default: jsExceptionHere(JSET_INTERNALERROR, "stmADCChannel"); return 0;
   }
 }
@@ -998,7 +1002,19 @@ void jshInit() {
  #if defined(STM32F3)
   RCC_APB1PeriphClockCmd(RCC_APB1Periph_PWR, ENABLE);
   RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
-  RCC_AHBPeriphClockCmd( RCC_AHBPeriph_GPIOA |
+  /* FIXME: We don't need to start the ADC12 clock here, since it will be
+   * started on first use, and not runing it saves power. However, Vrefint
+   * reads by ADC1 apparently don't stabilize until the ADC12 clock has been
+   * running for a few milliseconds, so if we start it now, we might avoid
+   * some bogus reads. A better solution is needed.
+   * (I have observed this slow startup on an STM32F303VCT6, and it is
+   * described in the datasheet[1] and errata sheet[2], although mostly in
+   * reference to the comparator Vrefint startup.)
+   * [1] "STM32F303xB STM32F303xC" datasheet, DM00058181.pdf, DocID023353 Rev 12, pp. 118-9.
+   * [2] "STM32F303xB/C Errata sheet", DM00063985.df, DocID023637 Rev 7, p. 22.
+   */
+  RCC_AHBPeriphClockCmd( RCC_AHBPeriph_ADC12 |
+                         RCC_AHBPeriph_GPIOA |
                          RCC_AHBPeriph_GPIOB |
                          RCC_AHBPeriph_GPIOC |
                          RCC_AHBPeriph_GPIOD |
@@ -1538,17 +1554,21 @@ static NO_INLINE int jshAnalogRead(JsvPinInfoAnalog analog, bool fastConversion)
 #ifndef STM32F1
       ADC_CommonInitTypeDef ADC_CommonInitStructure;
       ADC_CommonStructInit(&ADC_CommonInitStructure);
-      // use defaults
 #ifdef STM32F3
       if (ADCx == ADC1 || ADCx == ADC2) {
-        RCC_ADCCLKConfig(RCC_ADC12PLLCLK_Div2);
+        RCC_ADCCLKConfig(RCC_ADC12PLLCLK_Div1);
       } else { /* ADCx == ADC3 || ADCx == ADC4 */
-        RCC_ADCCLKConfig(RCC_ADC34PLLCLK_Div2);
+        RCC_ADCCLKConfig(RCC_ADC34PLLCLK_Div1);
       }
       ADC_VoltageRegulatorCmd(ADCx, ENABLE);
       jshDelayMicroseconds(10);
+      ADC_SelectCalibrationMode(ADCx, ADC_CalibrationMode_Single);
+      ADC_StartCalibration(ADCx);
+      while (ADC_GetCalibrationStatus(ADCx) != RESET); /* wait for ADCAL bit to clear */
+      // use defaults
       ADC_CommonInit(ADCx, &ADC_CommonInitStructure);
 #else
+      // use defaults
       ADC_CommonInit(&ADC_CommonInitStructure);
 #endif
 #endif
@@ -1575,7 +1595,7 @@ static NO_INLINE int jshAnalogRead(JsvPinInfoAnalog analog, bool fastConversion)
       ADC_Cmd(ADCx, ENABLE);
 
     #ifdef STM32API2
-      // No calibration??
+      // No calibration?? (STM32F3 ADC calibration must be done before enable; see above)
     #else
       // Calibrate
       ADC_ResetCalibration(ADCx);
@@ -1643,6 +1663,25 @@ JsVarFloat jshReadTemperature() {
   // disable sensor
   ADC_TempSensorVrefintCmd(DISABLE);
   return ((V_TEMP_25 - vSense) / V_TEMP_SLOPE) + 25;
+#elif defined(STM32F3)
+  // enable reference voltage and sensor
+  ADC_VrefintCmd(ADC1, ENABLE);
+  ADC_TempSensorCmd(ADC1, ENABLE);
+  jshDelayMicroseconds(10);
+  // read raw values
+  int vrefint_data = jshAnalogRead(JSH_ANALOG1 | JSH_ANALOG_CH18, false) >> 4;
+  int temp_raw = jshAnalogRead(JSH_ANALOG1 | JSH_ANALOG_CH16, false) >> 4;
+  // disable reference voltage and sensor
+  ADC_TempSensorCmd(ADC1, DISABLE);
+  ADC_VrefintCmd(ADC1, DISABLE);
+  // adjust raw temperature reading for current Vref+ supply voltage
+  JsVarFloat temp_adj = (JsVarFloat)temp_raw * (JsVarFloat)(*(VREFINT_CAL)) / (JsVarFloat)vrefint_data;
+  // factory raw temperature reading at 30ºC and 3.3V Vdda
+  JsVarFloat ts_cal1 = (JsVarFloat)(*(TS_CAL1));
+  // factory raw temperature reading at 110ºC and 3.3V Vdda
+  JsVarFloat ts_cal2 = (JsVarFloat)(*(TS_CAL2));
+  // !FIX! comment?
+  return (temp_adj - ts_cal1) * (110.0 - 30.0) / (ts_cal2 - ts_cal1) + 30.0;
 #else
   return NAN;
 #endif
@@ -1659,6 +1698,15 @@ JsVarFloat jshReadVRef() {
   // disable sensor
   ADC_TempSensorVrefintCmd(DISABLE);
   return V_REFINT / r;
+#elif defined(STM32F3)
+  // enable sensor
+  ADC_VrefintCmd(ADC1, ENABLE);
+  jshDelayMicroseconds(10);
+  // read
+  int vrefint_data = jshAnalogRead(JSH_ANALOG1 | JSH_ANALOG_CH18, false) >> 4;
+  // disable sensor
+  ADC_VrefintCmd(ADC1, DISABLE);
+  return 3.3 * (JsVarFloat)(*(VREFINT_CAL)) / (JsVarFloat)vrefint_data;
 #else
   return NAN;
 #endif
@@ -1678,6 +1726,7 @@ unsigned int jshGetRandomNumber() {
   // disable sensor
   ADC_TempSensorVrefintCmd(DISABLE);
   return v;
+// !FIX! #elif defined(STM32F3)
 #else
   return rand();
 #endif

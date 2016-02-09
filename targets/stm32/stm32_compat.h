@@ -28,6 +28,14 @@
 #define V_REFINT 1.20
 #define V_TEMP_25 1.43
 #define V_TEMP_SLOPE 0.0043
+#elif defined(STM32F3)
+// !FIX! these comments look odd out of context
+/* Raw data acquired at temperature of 30ºC, Vdda = 3.3V: */
+#define VREFINT_CAL   ((uint16_t*) ((uint32_t)0x1FFFF7BA))
+/* TS ADC raw data acquired at temperature of  30ºC, Vdda = 3.3V: */
+#define TS_CAL1       ((uint16_t*) ((uint32_t)0x1FFFF7B8))
+/* TS ADC raw data acquired at temperature of 110ºC, Vdda = 3.3V: */
+#define TS_CAL2       ((uint16_t*) ((uint32_t)0x1FFFF7C2))
 #else // defined(STM32F4)
 #define V_REFINT 1.21
 #define V_TEMP_25 0.76

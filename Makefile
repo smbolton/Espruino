@@ -28,7 +28,7 @@
 # HYSTM32_32=1            # HY STM32 3.2 VCT6 Ebay boards
 # HYTINY_STM103T=1				# HY-TinySTM103T by Haoyu (hotmcu.com)
 # STM32VLDISCOVERY=1
-# STM32F3DISCOVERY=1
+STM32F3DISCOVERY=1
 # STM32F4DISCOVERY=1
 # STM32F429IDISCOVERY=1
 # STM32F401CDISCOVERY=1
@@ -57,7 +57,7 @@
 # Also:
 #
 # DEBUG=1                 # add debug symbols (-g)
-# RELEASE=1               # Force release-style compile (no asserts, etc)
+RELEASE=1               # Force release-style compile (no asserts, etc)
 # SINGLETHREAD=1          # Compile single-threaded to make compilation errors easier to find
 # BOOTLOADER=1            # make the bootloader (not Espruino)
 # PROFILE=1               # Compile with gprof profiling info
@@ -382,7 +382,8 @@ USE_GRAPHICS=1
 BOARD=STM32F3DISCOVERY
 STLIB=STM32F3XX
 PRECOMPILED_OBJS+=$(ROOT)/targetlibs/stm32f3/lib/startup_stm32f30x.o
-OPTIMIZEFLAGS+=-O3
+#OPTIMIZEFLAGS+=-O3
+OPTIMIZEFLAGS+=-O2
 
 else ifdef STM32VLDISCOVERY
 EMBEDDED=1
