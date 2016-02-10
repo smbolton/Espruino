@@ -26,6 +26,7 @@
 #endif
 #if defined(__i386__)
     #define USE_X86_CDECL // cdecl on x86 is very different from x86_64
+    #define USE_FLOAT_RETURN_FIX
 #endif
 
 #if defined(__WORDSIZE) && __WORDSIZE == 64
