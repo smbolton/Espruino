@@ -20,14 +20,17 @@
 
 #define MAX_ARGS 12
 
-#if defined(__i386__) || defined(__x86_64__)
-    #define USE_X86_CDECL // cdecl on x86 puts FP args elsewhere!
+#if defined(__x86_64__)
+    #define USE_X86_64_CDECL // cdecl on x86_64 puts FP args elsewhere!
+#endif
+#if defined(__i386__)
+    #define USE_X86_CDECL // cdecl on x86 is very different from x86_64
 #endif
 
 #if defined(__WORDSIZE) && __WORDSIZE == 64
   #define USE_64BIT
 #else // 32 bit
-  #if defined(__gnu_linux__) && !defined(USE_X86_CDECL)
+  #if defined(__gnu_linux__) && (defined(ARM) || defined(XTENSA))
 /* This is nuts. On rasbperry pi Linux:
  *
  * `uint32_t a, uint32_t b, uint64_t c` -> a,b,c - awesome
@@ -48,7 +51,7 @@ JsVar *jsnCallFunction(void *function, JsnArgumentType argumentSpecifier, JsVar 
   int paramNumber = 0; // how many parameters we have
   int argCount = 0;
   size_t argData[MAX_ARGS];
-#ifdef USE_X86_CDECL
+#ifdef USE_X86_64_CDECL
   int doubleCount = 0;
   JsVarFloat doubleData[MAX_ARGS];
 #endif
@@ -113,7 +116,7 @@ JsVar *jsnCallFunction(void *function, JsnArgumentType argumentSpecifier, JsVar 
       break;
     case JSWAT_JSVARFLOAT: { // 64 bit float
       JsVarFloat f = jsvGetFloat(param);
-#ifdef USE_X86_CDECL
+#ifdef USE_X86_64_CDECL
       doubleData[doubleCount++] = f;
 #else
       uint64_t i = *(uint64_t*)&f;
@@ -131,7 +134,9 @@ JsVar *jsnCallFunction(void *function, JsnArgumentType argumentSpecifier, JsVar 
         argData[argCount++] = (size_t)((i>>32) & 0xFFFFFFFF);
       }
  #else // no reordering
+  #ifndef USE_X86_CDECL
       if (argCount&1) argCount++;
+  #endif
       argData[argCount++] = (size_t)((i) & 0xFFFFFFFF);
       argData[argCount++] = (size_t)((i>>32) & 0xFFFFFFFF);
  #endif
@@ -151,7 +156,7 @@ JsVar *jsnCallFunction(void *function, JsnArgumentType argumentSpecifier, JsVar 
 
   // When args<=4 on ARM, everything is passed in registers (so we try and do this case first)
   if (argCount<=4) {
-#ifdef USE_X86_CDECL
+#ifdef USE_X86_64_CDECL
     assert(doubleCount<=4);
     if (doubleCount) {
       if (returnType==JSWAT_JSVARFLOAT) {
@@ -183,7 +188,7 @@ JsVar *jsnCallFunction(void *function, JsnArgumentType argumentSpecifier, JsVar 
         result = ((uint32_t (*)(size_t,size_t,size_t,size_t))function)(argData[0],argData[1],argData[2],argData[3]);
     }
   } else { // else it gets tricky...
-#ifdef USE_X86_CDECL
+#ifdef USE_X86_64_CDECL
     assert(doubleCount==0);
     if (returnType==JSWAT_JSVARFLOAT) {
       // On x86, doubles are returned in a floating point unit register
