@@ -1,3 +1,4 @@
+// !FIX! http://www.espruino.com/binaries/git/commits/master/tests.log
 /*
  * This file is part of Espruino, a JavaScript interpreter for Microcontrollers
  *
